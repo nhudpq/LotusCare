@@ -1,0 +1,16 @@
+{
+  "name": "lotuscare",
+  "version": "1.0.0",
+  "private": true,
+  "description": "LotussCare - Electron + React + SQLite Application",
+  "scripts": {
+    "install:all": "npm install && cd ClientApp && npm install && cd ../electron && npm install && cd ..",
+    "dev": "concurrently \"cd ClientApp && npm run dev\" \"wait-on http://localhost:5173 && cd electron && npm run dev\"",
+    "build": "cd ClientApp && npm run build && cd ../electron && npm run build",
+    "start": "concurrently \"cd ClientApp && npm run dev\" \"wait-on http://localhost:5173 && cd electron && npm run dev\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "wait-on": "^9.0.4"
+  }
+}
