@@ -23,8 +23,8 @@ class PatientRepository {
 
   static createPatient(patientData) {
     try {
-      if (!patientData.firstName || !patientData.lastName) {
-        throw new Error('First name and last name are required');
+      if (!patientData.ma_bn || !patientData.ho_ten) {
+        throw new Error('Mã bệnh nhân and Họ tên are required');
       }
       const id = PatientModel.create(patientData);
       return PatientModel.getById(id);
@@ -35,8 +35,8 @@ class PatientRepository {
 
   static updatePatient(id, patientData) {
     try {
-      if (!patientData.firstName || !patientData.lastName) {
-        throw new Error('First name and last name are required');
+      if (!patientData.ho_ten) {
+        throw new Error('Họ tên is required');
       }
       const updated = PatientModel.update(id, patientData);
       if (!updated) {
