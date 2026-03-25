@@ -9,6 +9,7 @@ const swaggerSpec = require('./src/config/swagger');
 // Create Express app for API/Swagger
 const server = express();
 server.use(express.json()); // Add JSON parsing
+server.use(express.urlencoded({ extended: true })); // Add form parsing for Swagger UI inputs
 const PORT = 3000;
 
 server.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

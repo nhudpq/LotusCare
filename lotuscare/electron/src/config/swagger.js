@@ -9,7 +9,8 @@ const options = {
       version: '1.0.0',
     },
   },
-  apis: [path.join(__dirname, '../modules/patients/patient.controller.js')], 
+  // Ensure we use forward slashes for Windows compatibility with glob patterns
+  apis: [path.join(__dirname, '../modules/**/*.js').replace(/\\/g, '/')], 
 };
 
 const swaggerSpec = swaggerJsdoc(options);
