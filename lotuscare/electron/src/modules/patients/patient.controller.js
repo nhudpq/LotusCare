@@ -202,6 +202,29 @@ const PatientService = require('./patient.service');
  *     requestBody:
  *       required: true
  *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PatientInput'
+ *           example:
+ *             ma_bn: "BN001"
+ *             ho_ten: "Nguyen Van A"
+ *             gioi_tinh: 1
+ *             ngay_sinh: "1990-01-01"
+ *             ma_quoc_tich: "VN"
+ *             so_cmnd: "123456789"
+ *             ho_ten_cha: "Nguyen Van B"
+ *             ho_ten_ncs: "Tran Thi C"
+ *             phone: "0901234567"
+ *             father_phone: "0909876543"
+ *             email: "nguyenvana@example.com"
+ *             tinh: "01"
+ *             huyen: "001"
+ *             xa: "00001"
+ *             dia_chi: "123 Le Loi, District 1, HCMC"
+ *             tien_su_benh: "None"
+ *             di_ung: "Pollen"
+ *             hinh_anh: "base64_string_or_url"
+ *             ghi_chu: "Example patient note"
  *         application/x-www-form-urlencoded:
  *           schema:
  *             $ref: '#/components/schemas/PatientInput'
@@ -251,6 +274,29 @@ const PatientService = require('./patient.service');
  *     requestBody:
  *       required: true
  *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/PatientInput'
+ *           example:
+ *             ma_bn: "BN001"
+ *             ho_ten: "Nguyen Van A"
+ *             gioi_tinh: 1
+ *             ngay_sinh: "1990-01-01"
+ *             ma_quoc_tich: "VN"
+ *             so_cmnd: "123456789"
+ *             ho_ten_cha: "Nguyen Van B"
+ *             ho_ten_ncs: "Tran Thi C"
+ *             phone: "0901234567"
+ *             father_phone: "0909876543"
+ *             email: "nguyenvana@example.com"
+ *             tinh: "01"
+ *             huyen: "001"
+ *             xa: "00001"
+ *             dia_chi: "123 Le Loi, District 1, HCMC"
+ *             tien_su_benh: "None"
+ *             di_ung: "Pollen"
+ *             hinh_anh: "base64_string_or_url"
+ *             ghi_chu: "Example patient note"
  *         application/x-www-form-urlencoded:
  *           schema:
  *             $ref: '#/components/schemas/PatientInput'
