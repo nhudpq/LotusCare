@@ -36,6 +36,33 @@ function initializeDatabase() {
       di_ung TEXT,
       hinh_anh BLOB,
       ghi_chu TEXT,
+      is_deleted INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Migration to add is_deleted column if it doesn't exist
+  try {
+    const columns = db.pragma('table_info(patients)');
+    const hasIsDeleted = columns.some(col => col.name === 'is_deleted');
+    if (!hasIsDeleted) {
+      db.exec('ALTER TABLE patients ADD COLUMN is_deleted INTEGER DEFAULT 0');
+    }
+  } catch (err) {
+    console.error('Error during migration:', err);
+  }
+
+  // Create medical_services table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS medical_services (
+      id TEXT PRIMARY KEY,
+      code TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL,
+      description TEXT,
+      price REAL NOT NULL,
+      duration_minutes INTEGER,
+      status TEXT DEFAULT 'active',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )

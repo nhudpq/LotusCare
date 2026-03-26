@@ -3,13 +3,13 @@ const db = require('../../config/db');
 class PatientModel {
   // Get all patients
   static getAll() {
-    const stmt = db.prepare('SELECT * FROM patients ORDER BY created_at DESC');
+    const stmt = db.prepare('SELECT * FROM patients WHERE is_deleted = 0 ORDER BY created_at DESC');
     return stmt.all();
   }
 
   // Get patient by ID
   static getById(id) {
-    const stmt = db.prepare('SELECT * FROM patients WHERE id = ?');
+    const stmt = db.prepare('SELECT * FROM patients WHERE id = ? AND is_deleted = 0');
     return stmt.get(id);
   }
 
@@ -61,6 +61,7 @@ class PatientModel {
           phone = ?, father_phone = ?, email = ?, 
           tinh = ?, huyen = ?, xa = ?, dia_chi = ?, 
           tien_su_benh = ?, di_ung = ?, hinh_anh = ?, ghi_chu = ?,
+          is_deleted = COALESCE(?, is_deleted),
           updated_at = CURRENT_TIMESTAMP
       WHERE id = ?
     `);
@@ -84,15 +85,16 @@ class PatientModel {
       data.di_ung || null,
       data.hinh_anh || null,
       data.ghi_chu || null,
+      data.is_deleted !== undefined ? data.is_deleted : null,
       id
     );
     
     return result.changes > 0;
   }
 
-  // Delete patient
+  // Delete patient (Soft delete)
   static delete(id) {
-    const stmt = db.prepare('DELETE FROM patients WHERE id = ?');
+    const stmt = db.prepare('UPDATE patients SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?');
     const result = stmt.run(id);
     return result.changes > 0;
   }
@@ -101,7 +103,8 @@ class PatientModel {
   static search(query) {
     const stmt = db.prepare(`
       SELECT * FROM patients 
-      WHERE ho_ten LIKE ? OR ma_bn LIKE ? OR email LIKE ? OR phone LIKE ? OR so_cmnd LIKE ?
+      WHERE (ho_ten LIKE ? OR ma_bn LIKE ? OR email LIKE ? OR phone LIKE ? OR so_cmnd LIKE ?)
+      AND is_deleted = 0
       ORDER BY created_at DESC
     `);
     const searchPattern = `%${query}%`;

@@ -5,8 +5,9 @@ const options = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Patient API',
+      title: 'LotusCare API',
       version: '1.0.0',
+      description: 'API documentation for LotusCare application'
     },
   },
   // Ensure we use forward slashes for Windows compatibility with glob patterns

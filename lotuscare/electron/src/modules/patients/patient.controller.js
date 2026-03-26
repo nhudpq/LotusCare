@@ -162,6 +162,9 @@ const PatientService = require('./patient.service');
  *         ghi_chu:
  *           type: string
  *           description: Ghi chú
+ *         is_deleted:
+ *           type: integer
+ *           description: Trạng thái xóa (0: chưa xóa, 1: đã xóa)
  *         created_at:
  *           type: string
  *           format: date-time
