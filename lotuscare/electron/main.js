@@ -1,5 +1,6 @@
 const { app: electronApp, BrowserWindow } = require("electron");
 const express = require("express");
+const cors = require("cors");
 const db = require("./src/config/db");
 const { registerPatientRoutes } = require("./src/modules/patients/patient.routes");
 const { registerMedicalServiceRoutes } = require("./src/modules/medical_services/medical-service.routes");
@@ -10,6 +11,19 @@ const swaggerSpec = require('./src/config/swagger');
 
 // Create Express app for API/Swagger
 const server = express();
+
+// CORS Configuration
+const corsOptions = {
+  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  optionsSuccessStatus: 200,
+};
+
+// Enable CORS middleware
+server.use(cors(corsOptions));
+
 server.use(express.json()); // Add JSON parsing
 server.use(express.urlencoded({ extended: true })); // Add form parsing for Swagger UI inputs
 const PORT = 3000;
