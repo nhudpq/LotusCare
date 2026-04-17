@@ -20,6 +20,8 @@ import {
   Calendar,
   ChevronDown,
   ChevronRight,
+  Leaf,
+  Zap,
 } from "lucide-react";
 import { Avatar, Button, Flex, Image } from "antd";
 import { useState } from "react";
@@ -58,6 +60,16 @@ const menuGroups = [
         title: "Dịch Vụ Y Tế",
         icon: Heart,
         href: "/medical-services",
+      },
+      {
+        title: "Hỗ Trợ Trị Liệu",
+        icon: Leaf,
+        href: "/herbal-formulas",
+      },
+      {
+        title: "Huyệt (Acupoints)",
+        icon: Zap,
+        href: "/acupoints",
       },
       {
         title: "Lịch Hẹn",

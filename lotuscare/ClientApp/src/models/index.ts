@@ -23,3 +23,60 @@ export interface PatientModel {
   updated_at: string
   is_deleted: number
 }
+
+export interface MedicalServiceModel {
+  id?: string | number
+  code: string
+  name: string
+  description?: string
+  price: number
+  duration_minutes?: number
+  status: 'active' | 'inactive'
+  created_at?: string
+  updated_at?: string
+}
+
+export interface HerbalFormulaModel {
+  id?: number
+  code: string
+  name: string
+  description?: string
+  indication?: string
+  contraindication?: string
+  usage_instructions?: string
+  price: number
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+  is_deleted?: number
+}
+
+export interface MeridianModel {
+  id?: number
+  name_vi: string
+  type: 0 | 1  // 0=Primary meridians, 1=Extra meridians
+  organ_id?: number | null
+  is_deleted?: number
+  created_at?: string
+  updated_at?: string
+}
+
+export interface OrganModel {
+  id?: number
+  name: string
+  type: 0 | 1  // 0=Tạng (Organs), 1=Phủ (Bowels)
+  created_at?: string
+  updated_at?: string
+}
+
+export interface AcupointModel {
+  id?: number
+  code: string
+  name_vi: string
+  meridian_id: number
+  location?: string
+  indication?: string
+  is_deleted?: number
+  created_at?: string
+  updated_at?: string
+}

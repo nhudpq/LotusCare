@@ -1,4 +1,4 @@
-import { useTanstack, useTanstackMutation } from "@/hooks/use-tanstack";
+import { useCRUDOperations } from "@/hooks/use-tanstack";
 import type { PatientModel } from "@/models";
 import { Button, Table, Space, Tabs, Badge, Tag, message } from "antd";
 import { Plus, Edit, Trash2, Settings } from "lucide-react";
@@ -6,16 +6,23 @@ import { useState } from "react";
 import PatientModal from "./PatientModal";
 
 export default function Patients() {
-  const { data } = useTanstack<PatientModel>({ apiName: "/patients" });
-  const { mutate: createPatient, isPending: isCreating } =
-    useTanstackMutation<PatientModel>({
-      apiName: "/patients",
-    });
-  const { mutate: updatePatient, isPending: isUpdating } =
-    useTanstackMutation<PatientModel>({
-      apiName: "/patients",
-    });
+  const {
+    query,
+    create: createMutation,
+    update: updateMutation,
+    delete: deleteMutation,
+  } = useCRUDOperations<PatientModel[]>({
+    get: "/patients",
+    post: "/patients",
+    put: "/patients",
+    delete: "/patients",
+    queryKey: "patients",
+  });
 
+  const { data: patients = [], refetch } = query || {
+    data: [],
+    refetch: () => {},
+  };
   const [activeTab, setActiveTab] = useState("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] =
@@ -35,27 +42,42 @@ export default function Patients() {
     setSelectedPatient(null);
   };
 
-  const handleSubmit = (values: Partial<PatientModel>) => {
-    if (selectedPatient?.id) {
-      updatePatient(values, {
-        onSuccess: () => {
-          message.success("Cập nhật bệnh nhân thành công!");
-          handleCloseModal();
-        },
-        onError: () => {
-          message.error("Cập nhật bệnh nhân thất bại!");
-        },
+  const handleSubmit = async (values: Partial<PatientModel>) => {
+    try {
+      if (selectedPatient?.id) {
+        await updateMutation?.mutateAsync({
+          url: `/api/patients/${selectedPatient.id}`,
+          data: values,
+          method: "PUT",
+        });
+        message.success("Cập nhật bệnh nhân thành công!");
+      } else {
+        await createMutation?.mutateAsync({
+          url: "/api/patients",
+          data: values,
+          method: "POST",
+        });
+        message.success("Thêm bệnh nhân thành công!");
+      }
+      refetch();
+      handleCloseModal();
+    } catch (error) {
+      message.error("Lỗi khi lưu bệnh nhân!");
+      console.error("Error saving patient:", error);
+    }
+  };
+
+  const handleDeletePatient = async (id: number) => {
+    try {
+      await deleteMutation?.mutateAsync({
+        url: `/api/patients/${id}`,
+        method: "DELETE",
       });
-    } else {
-      createPatient(values, {
-        onSuccess: () => {
-          message.success("Thêm bệnh nhân thành công!");
-          handleCloseModal();
-        },
-        onError: () => {
-          message.error("Thêm bệnh nhân thất bại!");
-        },
-      });
+      message.success("Xóa bệnh nhân thành công!");
+      refetch();
+    } catch (error) {
+      message.error("Lỗi khi xóa bệnh nhân!");
+      console.error("Error deleting patient:", error);
     }
   };
 
@@ -140,6 +162,7 @@ export default function Patients() {
             size='small'
             icon={<Trash2 size={16} />}
             className='text-red-600 hover:text-red-800'
+            onClick={() => handleDeletePatient(record.id)}
           />
         </Space>
       ),
@@ -201,10 +224,10 @@ export default function Patients() {
       <div className='bg-white rounded-lg border border-gray-200 overflow-hidden'>
         <Table
           columns={columns}
-          dataSource={data as any}
+          dataSource={patients as any}
           pagination={{
             pageSize: 10,
-            position: ["bottomCenter"],
+            position: ["bottomRight"],
             showSizeChanger: true,
             showTotal: (total, range) =>
               `${range[0]} - ${range[1]} của ${total} bệnh nhân`,
@@ -221,7 +244,7 @@ export default function Patients() {
         onClose={handleCloseModal}
         onSubmit={handleSubmit}
         initialData={selectedPatient || undefined}
-        isLoading={isCreating || isUpdating}
+        isLoading={createMutation?.isPending || updateMutation?.isPending}
       />
     </div>
   );

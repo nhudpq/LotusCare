@@ -6,17 +6,18 @@ import {
 } from "@tanstack/react-query";
 import axios, { AxiosError, type AxiosInstance } from "axios";
 
-interface IProps<TData = unknown, TError = AxiosError> {
-  apiName: string;
-  baseURL?: string;
-  queryOptions?: Omit<UseQueryOptions<TData, TError>, "queryKey" | "queryFn">;
+type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+
+interface MutationPayload<TData = unknown> {
+  url: string;
+  data?: TData;
+  method?: HTTPMethod;
 }
 
 interface IMutationProps<TData = unknown, TError = AxiosError> {
-  apiName: string;
   baseURL?: string;
   mutationOptions?: Omit<
-    UseMutationOptions<TData, TError, unknown>,
+    UseMutationOptions<TData, TError, MutationPayload>,
     "mutationFn"
   >;
 }
@@ -65,18 +66,21 @@ const createAxiosInstance = (baseURL: string): AxiosInstance => {
 
 const axiosInstance = createAxiosInstance(API_BASE_URL);
 
-export function useTanstack<TData = unknown, TError = AxiosError>({
-  apiName,
-  baseURL = API_BASE_URL,
-  queryOptions,
-}: IProps<TData, TError>) {
-  const queryKey = [apiName];
-
+export function useTanstack<TData = unknown, TError = AxiosError>(
+  url: string,
+  queryKey: string,
+  options?: {
+    baseURL?: string;
+    queryOptions?: Omit<UseQueryOptions<TData, TError>, "queryKey" | "queryFn">;
+  },
+) {
   const fetchData = async (): Promise<TData> => {
     try {
       const instance =
-        baseURL === API_BASE_URL ? axiosInstance : createAxiosInstance(baseURL);
-      const response = await instance.get<TData>(apiName);
+        options?.baseURL === API_BASE_URL || !options?.baseURL
+          ? axiosInstance
+          : createAxiosInstance(options.baseURL);
+      const response = await instance.get<TData>(url);
       return response.data;
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -87,38 +91,56 @@ export function useTanstack<TData = unknown, TError = AxiosError>({
   };
 
   return useQuery<TData, TError>({
-    queryKey,
+    queryKey: [queryKey],
     queryFn: fetchData,
     staleTime: 1000 * 60 * 5, // 5 minutes
-    gcTime: 1000 * 60 * 10, // 10 minutes (formerly cacheTime)
+    gcTime: 1000 * 60 * 10, // 10 minutes
     retry: 2,
-    ...queryOptions,
+    ...options?.queryOptions,
   });
 }
 
-export function useTanstackMutation<TData = unknown, TError = AxiosError>({
-  apiName,
-  baseURL = API_BASE_URL,
-  mutationOptions,
-}: IMutationProps<TData, TError>) {
-  const mutationFn = async (payload: unknown): Promise<TData> => {
+export function useTanstackMutation<TData = unknown, TError = AxiosError>(
+  defaultUrl?: string,
+  defaultMethod: HTTPMethod = "POST",
+  options?: IMutationProps<TData, TError>,
+) {
+  const mutationFn = async (
+    payload: MutationPayload<unknown>,
+  ): Promise<TData> => {
     try {
       const instance =
-        baseURL === API_BASE_URL ? axiosInstance : createAxiosInstance(baseURL);
+        options?.baseURL === API_BASE_URL || !options?.baseURL
+          ? axiosInstance
+          : createAxiosInstance(options.baseURL);
 
-      // Determine request method based on API endpoint pattern
-      const isPostRequest =
-        !apiName.includes("PUT") && !apiName.includes("DELETE");
+      const url = payload.url || defaultUrl;
+      const method = payload.method || defaultMethod;
+      const data = payload.data;
+
+      if (!url) {
+        throw new Error("URL is required for mutation");
+      }
 
       let response;
-      if (isPostRequest || apiName.includes("POST")) {
-        response = await instance.post<TData>(apiName, payload);
-      } else if (apiName.includes("PUT")) {
-        response = await instance.put<TData>(apiName, payload);
-      } else if (apiName.includes("DELETE")) {
-        response = await instance.delete<TData>(apiName);
-      } else {
-        response = await instance.post<TData>(apiName, payload);
+      switch (method.toUpperCase()) {
+        case "POST":
+          response = await instance.post<TData>(url, data);
+          break;
+        case "PUT":
+          response = await instance.put<TData>(url, data);
+          break;
+        case "PATCH":
+          response = await instance.patch<TData>(url, data);
+          break;
+        case "DELETE":
+          response = await instance.delete<TData>(url);
+          break;
+        case "GET":
+          response = await instance.get<TData>(url);
+          break;
+        default:
+          throw new Error(`Unsupported HTTP method: ${method}`);
       }
 
       return response.data;
@@ -130,26 +152,31 @@ export function useTanstackMutation<TData = unknown, TError = AxiosError>({
     }
   };
 
-  return useMutation<TData, TError, unknown>({
+  return useMutation<TData, TError, MutationPayload>({
     mutationFn,
-    ...mutationOptions,
+    ...options?.mutationOptions,
   });
 }
 
 export function useTanstackPaginated<TData = unknown, TError = AxiosError>(
-  apiName: string,
+  url: string,
   page: number = 1,
   pageSize: number = 10,
-  baseURL = API_BASE_URL,
+  options?: {
+    baseURL?: string;
+    queryOptions?: Omit<UseQueryOptions<TData, TError>, "queryKey" | "queryFn">;
+  },
 ) {
-  const queryKey = [apiName, page, pageSize];
+  const queryKey = [url, page, pageSize];
 
   const fetchData = async (): Promise<TData> => {
     try {
       const instance =
-        baseURL === API_BASE_URL ? axiosInstance : createAxiosInstance(baseURL);
+        options?.baseURL === API_BASE_URL || !options?.baseURL
+          ? axiosInstance
+          : createAxiosInstance(options.baseURL);
       const response = await instance.get<TData>(
-        `${apiName}?page=${page}&pageSize=${pageSize}`,
+        `${url}?page=${page}&pageSize=${pageSize}`,
       );
       return response.data;
     } catch (error) {
@@ -166,5 +193,124 @@ export function useTanstackPaginated<TData = unknown, TError = AxiosError>(
     staleTime: 1000 * 60 * 5,
     gcTime: 1000 * 60 * 10,
     retry: 2,
+    ...options?.queryOptions,
   });
+}
+
+/**
+ * CRUD Helper Functions - Simplified wrappers for common operations
+ */
+export const useCRUD = {
+  /**
+   * Create - POST request
+   * Usage: useCRUD.create("/api/patients", { name: "John" })
+   */
+  useCreate<TData = unknown, TError = AxiosError>(
+    url: string,
+    options?: IMutationProps<TData, TError>,
+  ) {
+    return useTanstackMutation<TData, TError>(url, "POST", options);
+  },
+
+  /**
+   * Read - GET request
+   * Usage: useCRUD.useRead("/api/patients", "patients-list")
+   */
+  useRead<TData = unknown, TError = AxiosError>(
+    url: string,
+    queryKey: string,
+    options?: {
+      baseURL?: string;
+      queryOptions?: Omit<
+        UseQueryOptions<TData, TError>,
+        "queryKey" | "queryFn"
+      >;
+    },
+  ) {
+    return useTanstack<TData, TError>(url, queryKey, options);
+  },
+
+  /**
+   * Update - PUT request
+   * Usage: useCRUD.useUpdate({ url: "/api/patients/1", data: { name: "Jane" } })
+   */
+  useUpdate<TData = unknown, TError = AxiosError>(
+    options?: IMutationProps<TData, TError>,
+  ) {
+    return useTanstackMutation<TData, TError>(undefined, "PUT", options);
+  },
+
+  /**
+   * Delete - DELETE request
+   * Usage: useCRUD.useDelete("/api/patients/1")
+   */
+  useDelete<TData = unknown, TError = AxiosError>(
+    url: string,
+    options?: IMutationProps<TData, TError>,
+  ) {
+    return useTanstackMutation<TData, TError>(url, "DELETE", options);
+  },
+};
+
+/**
+ * Consolidated CRUD Operations Hook
+ * Usage:
+ * const { query, create, update, delete: deleteMutation } = useCRUDOperations({
+ *   get: "/api/patients",
+ *   post: "/api/patients",
+ *   put: "/api/patients",
+ *   delete: "/api/patients",
+ *   queryKey: "patients"
+ * });
+ */
+interface CRUDConfig {
+  get?: string;
+  post?: string;
+  put?: string;
+  delete?: string;
+  queryKey?: string;
+  options?: {
+    baseURL?: string;
+    queryOptions?: any;
+    mutationOptions?: any;
+  };
+}
+
+export function useCRUDOperations<TData = unknown, TError = AxiosError>(
+  config: CRUDConfig,
+) {
+  const queryKey = config.queryKey || "crud-query";
+  const mutationOptions = config.options?.mutationOptions;
+  const queryOptions = config.options?.queryOptions;
+  const baseURL = config.options?.baseURL;
+
+  return {
+    query: config.get
+      ? useTanstack<TData, TError>(config.get, queryKey, {
+          baseURL,
+          queryOptions,
+        })
+      : null,
+
+    create: config.post
+      ? useTanstackMutation<TData, TError>(config.post, "POST", {
+          baseURL,
+          mutationOptions,
+        })
+      : null,
+
+    update: config.put
+      ? useTanstackMutation<TData, TError>(config.put, "PUT", {
+          baseURL,
+          mutationOptions,
+        })
+      : null,
+
+    delete: config.delete
+      ? useTanstackMutation<TData, TError>(config.delete, "DELETE", {
+          baseURL,
+          mutationOptions,
+        })
+      : null,
+  };
 }
