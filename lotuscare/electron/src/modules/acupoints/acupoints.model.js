@@ -191,3 +191,5 @@ class AcupointModel {
     };
   }
 }
+
+module.exports = AcupointModel;
