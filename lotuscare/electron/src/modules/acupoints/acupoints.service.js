@@ -32,6 +32,18 @@ class AcupointService {
   static async deleteAcupoint(id) {
     return AcupointRepository.deleteAcupoint(id);
   }
+
+  static async getAcupointsPaginated(page = 1, limit = 10) {
+    return AcupointRepository.getAcupointsPaginated(page, limit);
+  }
+
+  static async searchAcupointsPaginated(q, page = 1, limit = 10) {
+    return AcupointRepository.searchAcupointsPaginated(q, page, limit);
+  }
+
+  static async getAcupointsByMeridianPaginated(meridianId, page = 1, limit = 10) {
+    return AcupointRepository.getAcupointsByMeridianPaginated(meridianId, page, limit);
+  }
 }
 
 module.exports = AcupointService;

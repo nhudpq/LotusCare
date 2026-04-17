@@ -1,12 +1,21 @@
-import { useState, useMemo } from "react";
-import { useTanstack, useTanstackMutation } from "@/hooks/use-tanstack";
+import { useState, useEffect } from "react";
+import { useTanstackMutation } from "@/hooks/use-tanstack";
 
-import { Button } from "antd";
 import { Input } from "@/components/ui/input";
 import { AcupointModal } from "./AcupointModal";
 import type { AcupointModel, MeridianModel } from "@/models";
-import { Table, Popconfirm, Space, Button as AntButton, Select } from "antd";
+import { Table, Popconfirm, Space, Button as AntButton, Select, Spin } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+
+interface PaginationResponse {
+  data: AcupointModel[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
 
 export function Acupoints() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -14,38 +23,68 @@ export function Acupoints() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedAcupoint, setSelectedAcupoint] =
     useState<AcupointModel | null>(null);
-
-  // Fetch acupoints
-  const {
-    data: acupoints = [],
-    isLoading: acupointsLoading,
-    refetch,
-  } = useTanstack<AcupointModel[]>("/acupoints", "acupoints");
-
-  // Fetch meridians for filter
-  const { data: meridians = [], isLoading: meridiansLoading } = useTanstack<
-    MeridianModel[]
-  >("/meridians", "meridians");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  
+  // Data state
+  const [acupointData, setAcupointData] = useState<PaginationResponse>({
+    data: [],
+    pagination: { total: 0, page: 1, limit: 10, totalPages: 0 },
+  });
+  const [meridians, setMeridians] = useState<MeridianModel[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [meridiansLoading, setMeridiansLoading] = useState(false);
 
   // Delete mutation
   const deleteMutation = useTanstackMutation("/acupoints", "DELETE");
 
-  // Filter acupoints based on search and meridian
-  const filteredAcupoints = useMemo(() => {
-    return acupoints.filter((acupoint: AcupointModel) => {
-      const matchesSearch =
-        !searchTerm ||
-        acupoint.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        acupoint.name_vi?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        acupoint.indication?.toLowerCase().includes(searchTerm.toLowerCase());
+  // Fetch meridians
+  useEffect(() => {
+    const fetchMeridians = async () => {
+      try {
+        setMeridiansLoading(true);
+        const response = await fetch("/api/meridians");
+        const data = await response.json();
+        setMeridians(Array.isArray(data) ? data : []);
+      } catch (error) {
+        console.error("Error fetching meridians:", error);
+      } finally {
+        setMeridiansLoading(false);
+      }
+    };
+    fetchMeridians();
+  }, []);
 
-      const matchesMeridian =
-        !selectedMeridian ||
-        acupoint.meridian_id?.toString() === selectedMeridian;
-
-      return matchesSearch && matchesMeridian;
-    });
-  }, [acupoints, searchTerm, selectedMeridian]);
+  // Fetch acupoints based on search and filters
+  useEffect(() => {
+    const fetchAcupoints = async () => {
+      try {
+        setLoading(true);
+        let url = `/api/acupoints?page=${page}&limit=${limit}`;
+        
+        if (searchTerm) {
+          url = `/api/acupoints/search-paginated?q=${encodeURIComponent(searchTerm)}&page=${page}&limit=${limit}`;
+        } else if (selectedMeridian) {
+          url = `/api/acupoints/meridian/${selectedMeridian}/paginated?page=${page}&limit=${limit}`;
+        }
+        
+        const response = await fetch(url);
+        const data: PaginationResponse = await response.json();
+        setAcupointData(data);
+      } catch (error) {
+        console.error("Error fetching acupoints:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    // Reset to page 1 when search or filter changes
+    if (searchTerm || selectedMeridian) {
+      setPage(1);
+    }
+    
+    fetchAcupoints();
+  }, [searchTerm, selectedMeridian, page, limit]);
 
   const handleAddAcupoint = () => {
     setSelectedAcupoint(null);
@@ -66,14 +105,16 @@ export function Acupoints() {
         data: null,
         method: "DELETE",
       });
-      refetch();
+      // Refetch data
+      setPage(1);
     } catch (error) {
       console.error("Error deleting acupoint:", error);
     }
   };
 
   const handleModalSuccess = () => {
-    refetch();
+    // Refetch data after successful create/update
+    setPage(1);
   };
 
   const getMeridianName = (meridianId: number) => {
@@ -212,19 +253,31 @@ export function Acupoints() {
 
       {/* Table */}
       <div className='bg-white rounded-lg overflow-hidden'>
-        <Table
-          columns={columns}
-          dataSource={filteredAcupoints}
-          rowKey='id'
-          loading={acupointsLoading || meridiansLoading}
-          pagination={{
-            pageSize: 10,
-            showSizeChanger: true,
-            showTotal: total =>
-              `${total} huyệt${selectedMeridian ? " trong kinh lạc đã chọn" : ""}${searchTerm ? ` khớp với "${searchTerm}"` : ""}`,
-          }}
-          scroll={{ x: true, y: "60vh" }}
-        />
+        <Spin spinning={loading || meridiansLoading}>
+          <Table
+            columns={columns}
+            dataSource={acupointData.data}
+            rowKey='id'
+            pagination={{
+              current: acupointData.pagination.page,
+              pageSize: acupointData.pagination.limit,
+              total: acupointData.pagination.total,
+              onChange: (newPage, pageSize) => {
+                setPage(newPage);
+                setLimit(pageSize);
+              },
+              onShowSizeChange: (current, size) => {
+                setPage(1);
+                setLimit(size);
+              },
+              showSizeChanger: true,
+              showTotal: (total) =>
+                `${total} huyệt${selectedMeridian ? " trong kinh lạc đã chọn" : ""}${searchTerm ? ` khớp với "${searchTerm}"` : ""}`,
+              pageSizeOptions: ['10', '20', '50', '100'],
+            }}
+            scroll={{ x: true, y: "60vh" }}
+          />
+        </Spin>
       </div>
 
       {/* Modal */}

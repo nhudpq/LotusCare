@@ -99,6 +99,95 @@ class AcupointModel {
     const result = stmt.run(now, id);
     return result.changes > 0;
   }
-}
 
-module.exports = AcupointModel;
+  static getPaginated(page = 1, limit = 10) {
+    const offset = (page - 1) * limit;
+    
+    // Get total count
+    const countStmt = db.prepare(`
+      SELECT COUNT(*) as total FROM acupoints 
+      WHERE is_deleted = 0
+    `);
+    const { total } = countStmt.get();
+    
+    // Get paginated data
+    const stmt = db.prepare(`
+      SELECT * FROM acupoints 
+      WHERE is_deleted = 0
+      ORDER BY code ASC
+      LIMIT ? OFFSET ?
+    `);
+    const data = stmt.all(limit, offset);
+    
+    return {
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  static searchPaginated(q, page = 1, limit = 10) {
+    const searchTerm = `%${q}%`;
+    const offset = (page - 1) * limit;
+    
+    // Get total count for search results
+    const countStmt = db.prepare(`
+      SELECT COUNT(*) as total FROM acupoints 
+      WHERE is_deleted = 0 AND (code LIKE ? OR name_vi LIKE ? OR indication LIKE ?)
+    `);
+    const { total } = countStmt.get(searchTerm, searchTerm, searchTerm);
+    
+    // Get paginated search results
+    const stmt = db.prepare(`
+      SELECT * FROM acupoints 
+      WHERE is_deleted = 0 AND (code LIKE ? OR name_vi LIKE ? OR indication LIKE ?)
+      ORDER BY code ASC
+      LIMIT ? OFFSET ?
+    `);
+    const data = stmt.all(searchTerm, searchTerm, searchTerm, limit, offset);
+    
+    return {
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+
+  static getByMeridianPaginated(meridianId, page = 1, limit = 10) {
+    const offset = (page - 1) * limit;
+    
+    // Get total count
+    const countStmt = db.prepare(`
+      SELECT COUNT(*) as total FROM acupoints 
+      WHERE meridian_id = ? AND is_deleted = 0
+    `);
+    const { total } = countStmt.get(meridianId);
+    
+    // Get paginated data
+    const stmt = db.prepare(`
+      SELECT * FROM acupoints 
+      WHERE meridian_id = ? AND is_deleted = 0
+      ORDER BY code ASC
+      LIMIT ? OFFSET ?
+    `);
+    const data = stmt.all(meridianId, limit, offset);
+    
+    return {
+      data,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  }
+}

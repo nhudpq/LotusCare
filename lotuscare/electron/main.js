@@ -77,11 +77,14 @@ server.put('/api/organs/:id', OrganController.update);
 server.delete('/api/organs/:id', OrganController.delete);
 
 // API Endpoints - Acupoints
-server.get('/api/acupoints', AcupointController.getAll);
-server.get('/api/acupoints/code/:code', AcupointController.getByCode);
-server.get('/api/acupoints/meridian/:meridianId', AcupointController.getByMeridian);
+server.get('/api/acupoints/search-paginated', AcupointController.searchPaginated);
 server.get('/api/acupoints/search', AcupointController.search);
+server.get('/api/acupoints/meridian/:meridianId/paginated', AcupointController.getByMeridianPaginated);
+server.get('/api/acupoints/meridian/:meridianId', AcupointController.getByMeridian);
+server.get('/api/acupoints/code/:code', AcupointController.getByCode);
 server.get('/api/acupoints/:id', AcupointController.getById);
+// Paginated list (default GET with pagination support)
+server.get('/api/acupoints', AcupointController.getAllPaginated);
 server.post('/api/acupoints', AcupointController.create);
 server.put('/api/acupoints/:id', AcupointController.update);
 server.delete('/api/acupoints/:id', AcupointController.delete);

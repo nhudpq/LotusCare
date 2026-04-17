@@ -55,6 +55,30 @@ const AcupointService = require('./acupoints.service');
  *         updated_at:
  *           type: string
  *           format: date-time
+ *     PaginationInfo:
+ *       type: object
+ *       properties:
+ *         total:
+ *           type: integer
+ *           description: Total number of records
+ *         page:
+ *           type: integer
+ *           description: Current page number
+ *         limit:
+ *           type: integer
+ *           description: Records per page
+ *         totalPages:
+ *           type: integer
+ *           description: Total number of pages
+ *     AcupointsPaginatedResponse:
+ *       type: object
+ *       properties:
+ *         data:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/Acupoint'
+ *         pagination:
+ *           $ref: '#/components/schemas/PaginationInfo'
  */
 
 /**
@@ -68,17 +92,28 @@ const AcupointService = require('./acupoints.service');
  * @swagger
  * /api/acupoints:
  *   get:
- *     summary: Get all acupoints
+ *     summary: Get paginated acupoints
  *     tags: [Acupoints]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number (starting from 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of records per page (max 100)
  *     responses:
  *       200:
- *         description: List of all acupoints
+ *         description: Paginated list of acupoints
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Acupoint'
+ *               $ref: '#/components/schemas/AcupointsPaginatedResponse'
  *   post:
  *     summary: Create a new acupoint
  *     tags: [Acupoints]
@@ -97,6 +132,64 @@ const AcupointService = require('./acupoints.service');
  *               $ref: '#/components/schemas/Acupoint'
  *       500:
  *         description: Server error
+ */
+
+/**
+ * @swagger
+ * /api/acupoints/search-paginated:
+ *   get:
+ *     summary: Search acupoints with pagination
+ *     tags: [Acupoints]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Search query (searches code, name_vi, indication)
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *     responses:
+ *       200:
+ *         description: Paginated search results
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AcupointsPaginatedResponse'
+ *       400:
+ *         description: Search query is required
+ */
+
+/**
+ * @swagger
+ * /api/acupoints/search:
+ *   get:
+ *     summary: Search acupoints (without pagination)
+ *     tags: [Acupoints]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Search query
+ *     responses:
+ *       200:
+ *         description: Search results
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Acupoint'
  */
 
 /**
@@ -173,7 +266,7 @@ const AcupointService = require('./acupoints.service');
  * @swagger
  * /api/acupoints/meridian/{meridianId}:
  *   get:
- *     summary: Get acupoints by meridian
+ *     summary: Get acupoints by meridian (without pagination)
  *     tags: [Acupoints]
  *     parameters:
  *       - in: path
@@ -188,19 +281,33 @@ const AcupointService = require('./acupoints.service');
 
 /**
  * @swagger
- * /api/acupoints/search?q=query:
+ * /api/acupoints/meridian/{meridianId}/paginated:
  *   get:
- *     summary: Search acupoints by code, name, or indication
+ *     summary: Get acupoints by meridian with pagination
  *     tags: [Acupoints]
  *     parameters:
- *       - in: query
- *         name: q
+ *       - in: path
+ *         name: meridianId
  *         schema:
- *           type: string
+ *           type: integer
  *         required: true
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
  *     responses:
  *       200:
- *         description: Search results
+ *         description: Paginated acupoints for the meridian
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/AcupointsPaginatedResponse'
  */
 
 class AcupointController {
@@ -293,6 +400,42 @@ class AcupointController {
       } else {
         res.status(500).json({ error: error.message });
       }
+    }
+  }
+
+  static async getAllPaginated(req, res) {
+    try {
+      const page = req.query.page || 1;
+      const limit = req.query.limit || 10;
+      const result = await AcupointService.getAcupointsPaginated(page, limit);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async searchPaginated(req, res) {
+    try {
+      const { q, page = 1, limit = 10 } = req.query;
+      if (!q) {
+        return res.status(400).json({ error: 'Search query (q) is required' });
+      }
+      const result = await AcupointService.searchAcupointsPaginated(q, page, limit);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  static async getByMeridianPaginated(req, res) {
+    try {
+      const { meridianId } = req.params;
+      const page = req.query.page || 1;
+      const limit = req.query.limit || 10;
+      const result = await AcupointService.getAcupointsByMeridianPaginated(meridianId, page, limit);
+      res.json(result);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
   }
 }

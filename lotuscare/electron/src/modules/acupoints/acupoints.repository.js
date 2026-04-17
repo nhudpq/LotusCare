@@ -87,6 +87,39 @@ class AcupointRepository {
       throw new Error(`Error deleting acupoint: ${error.message}`);
     }
   }
+
+  static getAcupointsPaginated(page = 1, limit = 10) {
+    try {
+      page = Math.max(1, parseInt(page) || 1);
+      limit = Math.max(1, Math.min(100, parseInt(limit) || 10)); // Cap at 100
+      return AcupointModel.getPaginated(page, limit);
+    } catch (error) {
+      throw new Error(`Error fetching paginated acupoints: ${error.message}`);
+    }
+  }
+
+  static searchAcupointsPaginated(q, page = 1, limit = 10) {
+    try {
+      if (!q || q.trim().length === 0) {
+        throw new Error('Search query is required');
+      }
+      page = Math.max(1, parseInt(page) || 1);
+      limit = Math.max(1, Math.min(100, parseInt(limit) || 10)); // Cap at 100
+      return AcupointModel.searchPaginated(q.trim(), page, limit);
+    } catch (error) {
+      throw new Error(`Error searching paginated acupoints: ${error.message}`);
+    }
+  }
+
+  static getAcupointsByMeridianPaginated(meridianId, page = 1, limit = 10) {
+    try {
+      page = Math.max(1, parseInt(page) || 1);
+      limit = Math.max(1, Math.min(100, parseInt(limit) || 10)); // Cap at 100
+      return AcupointModel.getByMeridianPaginated(meridianId, page, limit);
+    } catch (error) {
+      throw new Error(`Error fetching paginated acupoints by meridian: ${error.message}`);
+    }
+  }
 }
 
 module.exports = AcupointRepository;
